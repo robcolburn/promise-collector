@@ -1,0 +1,35 @@
+{
+  "name": "promise-collector",
+  "version": "0.2.0",
+  "description": "Collects registered promises to be delivered together.",
+  "main": "promise-collector.js",
+  "scripts": {
+    "test": "./node_modules/.bin/mocha"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/robcolburn/promise-collector"
+  },
+  "keywords": [
+    "promises",
+    "promise",
+    "always"
+  ],
+  "author": "Rob Colburn",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/robcolburn/promise-collector/issues"
+  },
+  "homepage": "https://github.com/robcolburn/promise-collector",
+  "dependencies": {
+    "promise-results": "^0.2.0"
+  },
+  "devDependencies": {
+    "chai": "^2.1.2",
+    "chai-as-promised": "^4.3.0",
+    "es6-promise": "^2.0.1",
+    "es6-promises": "^1.0.10",
+    "jsdom": "^4.0.5",
+    "mocha": "^2.2.1"
+  }
+}
