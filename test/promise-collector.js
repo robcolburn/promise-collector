@@ -4,7 +4,7 @@ var results = require('promise-results');
 describe('Promise Results', function() {
   var PizzaShop;
   beforeEach(function() {
-    PizzaShop = new Collector();
+    PizzaShop = new Collector('PizzaShop');
     PizzaShop.order = function (requested) {
       return new Promise(function (resolve, reject) {
         PizzaShop.receive(requested, function (actual) {
@@ -24,7 +24,7 @@ describe('Promise Results', function() {
     PizzaShop = null;
   });
 
-  it('collects', function () {
+  it('Collects', function () {
     return PizzaShop.collect(function() {
       PizzaShop.cook('pepperoni');
       PizzaShop.cook('hawaiian');
@@ -36,7 +36,7 @@ describe('Promise Results', function() {
     });
   });
 
-  it('delivers', function () {
+  it('Delivers', function () {
     var orders = Promise.all([
       PizzaShop.order('pepperoni'),
       PizzaShop.order('hawaiian'),
@@ -53,7 +53,7 @@ describe('Promise Results', function() {
     .should.eventually.eql(3);
   });
 
-  it('understands failure', function () {
+  it('Understands failure', function () {
     var orders = Promise.all([
       PizzaShop.order('pepperoni'),
       PizzaShop.order('hawaiian')
@@ -67,7 +67,7 @@ describe('Promise Results', function() {
     return orders.should.be.rejected;
   });
 
-  it('delivers failures', function () {
+  it('Delivers failures', function () {
     var orders = results([
       PizzaShop.order('pepperoni'),
       PizzaShop.order('hawaiian'),
@@ -83,6 +83,25 @@ describe('Promise Results', function() {
       return Object.keys(results).length;
     })
     .should.eventually.eql(3);
+  });
+
+
+  it('Makes appropriate payloads', function () {
+    return PizzaShop.collect(function() {
+      PizzaShop.cook('pepperoni');
+      PizzaShop.undercook('hawaiian');
+      PizzaShop.undercook('supreme');
+    })
+    .then(function (pizzas) {
+      var js = PizzaShop.toPayload(pizzas);
+      var json = js.replace('PizzaShop=','');
+      return JSON.parse(json);
+    })
+    .should.eventually.eql({
+      pepperoni: 'hot pepperoni',
+      hawaiian: 'cold hawaiian',
+      supreme: 'cold supreme'
+    });
   });
 
 });
