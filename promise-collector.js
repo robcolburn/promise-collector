@@ -4,12 +4,8 @@ var results = require('promise-results');
  * Intended to be used as a singleton, but instanced for isolation.
  *
  * @class The Promise Collector.
- * @param {string} payloadName
- *   Name to be used in delivery to client-side.
  */
-function PromiseCollector(payloadName) {
-  // String to name the client-side payload of data.
-  this.payloadName = payloadName || 'payload';
+function PromiseCollector() {
   // Key-Value of callback functions that return Promises.
   this.promises = null;
   // Key-Value of callback functions to deliver Promised data to.
@@ -87,31 +83,6 @@ PromiseCollector.prototype.deliver = function (collection) {
     throw new Error('PromiseCollector.promise expects a Promise.');
   }
   this.promises[promiseKey] = promise;
-};
-/**
- * Convert object to pass on to client.
- *
- * @param {object} collection
- *   Generic Object to store on client
- * @param {string} payloadName
- *   Optional. Sets the name of payload to store on client.
- * @return {string}
- *   Encoded payload to deliver to client (with inline script).
- */
-PromiseCollector.prototype.toPayload = function (collection, payloadName) {
-  return this.payloadName + '=' + JSON.stringify(collection);
-};
-/**
- * Get payload on client side.
- *
- * @param {string} payloadName
- *   Optional. Sets the name of payload to retreive on client.
- * @return {object}
- *   The payload.
- */
- PromiseCollector.prototype.getPayload = function (payloadName) {
-  /*global window*/
-  return window[this.payloadName];
 };
 
 module.exports = PromiseCollector;

@@ -4,7 +4,7 @@ var results = require('promise-results');
 describe('Promise Results', function() {
   var PizzaShop;
   beforeEach(function() {
-    PizzaShop = new Collector('PizzaShop');
+    PizzaShop = new Collector();
     PizzaShop.order = function (requested) {
       return new Promise(function (resolve, reject) {
         PizzaShop.receive(requested, function (actual) {
@@ -83,25 +83,6 @@ describe('Promise Results', function() {
       return Object.keys(results).length;
     })
     .should.eventually.eql(3);
-  });
-
-
-  it('Makes appropriate payloads', function () {
-    return PizzaShop.collect(function() {
-      PizzaShop.cook('pepperoni');
-      PizzaShop.undercook('hawaiian');
-      PizzaShop.undercook('supreme');
-    })
-    .then(function (pizzas) {
-      var js = PizzaShop.toPayload(pizzas);
-      var json = js.replace('PizzaShop=','');
-      return JSON.parse(json);
-    })
-    .should.eventually.eql({
-      pepperoni: 'hot pepperoni',
-      hawaiian: 'cold hawaiian',
-      supreme: 'cold supreme'
-    });
   });
 
 });
