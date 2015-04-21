@@ -79,7 +79,7 @@ PromiseCollector.prototype.deliver = function (collection) {
   if (typeof promise === 'function') {
     promise = promise();
   }
-  if (!promise instanceof Promise) {
+  if (!promise || !promise.then) {
     throw new Error('PromiseCollector.promise expects a Promise.');
   }
   this.promises[promiseKey] = promise;
