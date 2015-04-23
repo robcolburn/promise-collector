@@ -6,9 +6,11 @@ describe('Promise Results', function() {
   beforeEach(function() {
     PizzaShop = new Collector();
     PizzaShop.order = function (requested) {
+      var expected = 'hot ' + requested;
       return new Promise(function (resolve, reject) {
         PizzaShop.receive(requested, function (actual) {
-          var expected = 'hot ' + requested;
+          return (expected === actual) ? resolve(actual) : reject(new Error(actual + ' does not match ' + expected));
+        }, function (actual) {
           return (expected === actual) ? resolve(actual) : reject(new Error(actual + ' does not match ' + expected));
         });
       });
@@ -30,9 +32,12 @@ describe('Promise Results', function() {
       PizzaShop.cook('hawaiian');
       PizzaShop.cook('supreme');
     }).should.eventually.eql({
-      pepperoni: 'hot pepperoni',
-      hawaiian: 'hot hawaiian',
-      supreme: 'hot supreme'
+      resolved: {
+        pepperoni: 'hot pepperoni',
+        hawaiian: 'hot hawaiian',
+        supreme: 'hot supreme'
+      },
+      rejected: {}
     });
   });
 
@@ -61,13 +66,13 @@ describe('Promise Results', function() {
     PizzaShop.collect(function() {
       PizzaShop.cook('pepperoni');
       PizzaShop.undercook('hawaiian');
-    }).then(function(pizzas) {
+    }).then(null, function (pizzas) {
       PizzaShop.deliver(pizzas);
     });
     return orders.should.be.rejected;
   });
 
-  it('Delivers failures', function () {
+  it('Delivers mixed results', function () {
     var orders = results([
       PizzaShop.order('pepperoni'),
       PizzaShop.order('hawaiian'),
@@ -78,12 +83,11 @@ describe('Promise Results', function() {
       PizzaShop.undercook('hawaiian');
       PizzaShop.undercook('supreme');
     })
-    .then(function (pizzas) {
-      var results = PizzaShop.deliver(pizzas);
-      return Object.keys(results).length;
+    .then(null, function (pizzas) {
+      var delivered = PizzaShop.deliver(pizzas);
+      return Object.keys(delivered);
     })
-    .should.eventually.eql(3);
+    .should.eventually.have.length(3);
   });
 
 });
-
