@@ -1,6 +1,6 @@
 {
   "name": "promise-collector",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Collects registered promises to be delivered together.",
   "main": "promise-collector.js",
   "scripts": {
