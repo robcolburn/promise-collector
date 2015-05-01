@@ -22,7 +22,7 @@
   },
   "homepage": "https://github.com/robcolburn/promise-collector",
   "dependencies": {
-    "promise-results": "^0.6.0"
+    "promise-results": "^0.6.1"
   },
   "devDependencies": {
     "chai": "^2.1.2",
