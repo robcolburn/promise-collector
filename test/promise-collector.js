@@ -1,5 +1,6 @@
+/*eslint-env mocha */
 var Collector = require('../promise-collector');
-var results = require('promise-results');
+var resultSet = require('promise-results/resultSet');
 
 describe('Promise Collector', function() {
   var PizzaShop;
@@ -26,7 +27,7 @@ describe('Promise Collector', function() {
     PizzaShop = null;
   });
 
-  it('Collects', function () {
+  it('Collects pizzas', function () {
     return PizzaShop.collect(function() {
       PizzaShop.cook('pepperoni');
       PizzaShop.cook('hawaiian');
@@ -47,38 +48,43 @@ describe('Promise Collector', function() {
       PizzaShop.order('hawaiian'),
       PizzaShop.order('supreme')
     ]);
-    return PizzaShop.collect(function() {
+    var deliveries = PizzaShop.collect(function() {
       PizzaShop.cook('pepperoni');
       PizzaShop.cook('hawaiian');
       PizzaShop.cook('supreme');
     }).then(function (pizzas) {
-      var results = PizzaShop.deliver(pizzas);
-      return Object.keys(results).length;
-    })
-    .should.eventually.eql(3);
+      return PizzaShop.deliver(pizzas);
+    });
+    return Promise.all([
+      orders,
+      deliveries
+    ]).then(function(results) {
+      results[0].should.have.length(3);
+      Object.keys(results[1]).should.have.length(3);
+    });
   });
 
   it('Understands failure', function () {
-    var orders = Promise.all([
+    var orders = [
       PizzaShop.order('pepperoni'),
       PizzaShop.order('hawaiian')
-    ]);
+    ];
     PizzaShop.collect(function() {
       PizzaShop.cook('pepperoni');
       PizzaShop.undercook('hawaiian');
     }).then(null, function (pizzas) {
       PizzaShop.deliver(pizzas);
     });
-    return orders.should.be.rejected;
+    return Promise.all(orders).should.be.rejected;
   });
 
   it('Delivers mixed results', function () {
-    var orders = results([
+    var orders = [
       PizzaShop.order('pepperoni'),
       PizzaShop.order('hawaiian'),
       PizzaShop.order('supreme')
-    ]);
-    return PizzaShop.collect(function() {
+    ];
+    PizzaShop.collect(function() {
       PizzaShop.cook('pepperoni');
       PizzaShop.undercook('hawaiian');
       PizzaShop.undercook('supreme');
@@ -86,11 +92,32 @@ describe('Promise Collector', function() {
     .then(null, function (pizzas) {
       var delivered = PizzaShop.deliver(pizzas);
       return Object.keys(delivered);
-    })
-    .should.eventually.have.length(3);
+    });
+    return resultSet(orders).then(null, function (results) {
+      results.resolved[0].should.eql('hot pepperoni');
+      results.rejected[1].should.be.an.instanceof(Error);
+      results.rejected[2].should.be.an.instanceof(Error);
+    });
+  });
+
+  it('Doesn\'t crash with unreceived data.', function () {
+    return PizzaShop.collect(function() {
+      PizzaShop.cook('pepperoni');
+    }).then(function (pizzas) {
+      PizzaShop.deliver(pizzas);
+    });
+  });
+
+  it('Doesn\'t crash with unreceived errors.', function () {
+    return PizzaShop.collect(function() {
+      PizzaShop.undercook('sausage');
+    }).then(null, function (pizzas) {
+      PizzaShop.deliver(pizzas);
+    });
   });
 
   it('Validates receive hooks.', function () {
+    PizzaShop.receive.bind(PizzaShop, 'a').should.not.throw(TypeError);
     PizzaShop.receive.bind(PizzaShop, function(){}).should.throw(TypeError);
     PizzaShop.receive.bind(PizzaShop, 'a', function(){}).should.not.throw(TypeError);
     PizzaShop.receive.bind(PizzaShop, 'a', 'b', function(){}).should.throw(TypeError);
@@ -99,11 +126,17 @@ describe('Promise Collector', function() {
   });
 
   it('Validates promise hooks.', function () {
+    PizzaShop.promise.bind(PizzaShop, function(){}).should.throw(TypeError);
+    PizzaShop.promise.bind(PizzaShop, Promise.resolve()).should.throw(TypeError);
     PizzaShop.promise.bind(PizzaShop, 'a').should.throw(TypeError);
+    PizzaShop.promise.bind(PizzaShop, 'a', {}).should.throw(TypeError);
     PizzaShop.promise.bind(PizzaShop, 'a', function(){}).should.not.throw(TypeError);
-    PizzaShop.promise.bind(PizzaShop, 'a', new Promise(function(){})).should.not.throw(TypeError);
+    PizzaShop.promise.bind(PizzaShop, 'a', Promise.resolve()).should.not.throw(TypeError);
     return PizzaShop.collect(function() {
       PizzaShop.promise.bind(PizzaShop, 'a', function(){}).should.throw(TypeError);
+      PizzaShop.promise.bind(PizzaShop, 'a', function() {
+        return function(){};
+      }).should.throw(TypeError);
       PizzaShop.promise.bind(PizzaShop, 'a', function(){
         return Promise.resolve();
       }).should.not.throw(TypeError);
