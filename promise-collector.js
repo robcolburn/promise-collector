@@ -70,18 +70,21 @@ PromiseCollector.prototype.deliver = function (collection) {
  *   A function to be called with rejected data once collection is delivered.
  */
 PromiseCollector.prototype.receive = function (promiseKey, onFulfilled, onRejected) {
+  // Early-detect non-functions for proper stack-tracing goodness.
+  if (typeof promiseKey !== 'string') {
+    throw new TypeError('PromiseCollector.receive expects promiseKey to be a string.');
+  }
   // Allow onFulfilled to be optional
   if (onFulfilled) {
-    // Early-detect non-functions for proper stack-tracing goodness.
     if (typeof onFulfilled !== 'function') {
-      throw new Error('PromiseCollector.receive expects a function.');
+      throw new TypeError('PromiseCollector.receive expects onFulfilled to be a function.');
     }
     this.recipients[promiseKey] = onFulfilled;
   }
   // Allow onRejected to be optional
   if (onRejected) {
     if (typeof onRejected !== 'function') {
-      throw new Error('PromiseCollector.receive expects onRejected to be a function.');
+      throw new TypeError('PromiseCollector.receive expects onRejected to be a function.');
     }
     this.rejectees[promiseKey] = onRejected;
   }
@@ -96,15 +99,22 @@ PromiseCollector.prototype.receive = function (promiseKey, onFulfilled, onReject
  *   Or, a function to be called to return the Promise.
  */
 PromiseCollector.prototype.promise = function (promiseKey, promise) {
+  // Early-detect non-Promises for proper stack-tracing goodness.
+  if (typeof promiseKey !== 'string') {
+    throw new TypeError('PromiseCollector.receive expects promiseKey to be a string.');
+  }
+  if (typeof promise !== 'function' && !promise.then) {
+    throw new TypeError('PromiseCollector.promise expects promise to be a Promise or a function that returns a Promise.');
+  }
+  // Don't fire callback, and dont' store when we aren't collecting.
   if (!this.promises) {
     return;
   }
-  // Early-detect non-Promises for proper stack-tracing goodness.
   if (typeof promise === 'function') {
     promise = promise();
-  }
-  if (!promise || !promise.then) {
-    throw new Error('PromiseCollector.promise expects a Promise.');
+    if (!promise.then) {
+      throw new TypeError('PromiseCollector.promise expects promise function to return a Promise.');
+    }
   }
   this.promises[promiseKey] = promise;
 };

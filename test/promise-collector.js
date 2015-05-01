@@ -1,7 +1,7 @@
 var Collector = require('../promise-collector');
 var results = require('promise-results');
 
-describe('Promise Results', function() {
+describe('Promise Collector', function() {
   var PizzaShop;
   beforeEach(function() {
     PizzaShop = new Collector();
@@ -88,6 +88,26 @@ describe('Promise Results', function() {
       return Object.keys(delivered);
     })
     .should.eventually.have.length(3);
+  });
+
+  it('Validates receive hooks.', function () {
+    PizzaShop.receive.bind(PizzaShop, function(){}).should.throw(TypeError);
+    PizzaShop.receive.bind(PizzaShop, 'a', function(){}).should.not.throw(TypeError);
+    PizzaShop.receive.bind(PizzaShop, 'a', 'b', function(){}).should.throw(TypeError);
+    PizzaShop.receive.bind(PizzaShop, 'a', function(){}, 'b').should.throw(TypeError);
+    PizzaShop.receive.bind(PizzaShop, 'a', function(){}, function(){}).should.not.throw(TypeError);
+  });
+
+  it('Validates promise hooks.', function () {
+    PizzaShop.promise.bind(PizzaShop, 'a').should.throw(TypeError);
+    PizzaShop.promise.bind(PizzaShop, 'a', function(){}).should.not.throw(TypeError);
+    PizzaShop.promise.bind(PizzaShop, 'a', new Promise(function(){})).should.not.throw(TypeError);
+    return PizzaShop.collect(function() {
+      PizzaShop.promise.bind(PizzaShop, 'a', function(){}).should.throw(TypeError);
+      PizzaShop.promise.bind(PizzaShop, 'a', function(){
+        return Promise.resolve();
+      }).should.not.throw(TypeError);
+    });
   });
 
 });
