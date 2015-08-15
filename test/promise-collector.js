@@ -6,21 +6,28 @@ describe('Promise Collector', function() {
   var PizzaShop;
   beforeEach(function() {
     PizzaShop = new Collector();
-    PizzaShop.order = function (requested) {
-      var expected = 'hot ' + requested;
+    PizzaShop.order = function (requestedPizza, name, ignoreWrongAddress) {
+      var expected = 'hot ' + requestedPizza;
+      var address = name || requestedPizza;
       return new Promise(function (resolve, reject) {
-        PizzaShop.receive(requested, function (actual) {
-          return (expected === actual) ? resolve(actual) : reject(new Error(actual + ' does not match ' + expected));
+        PizzaShop.receive(address, function (actual) {
+          if (expected === actual) {
+            resolve(actual);
+          } else if (!ignoreWrongAddress) {
+            reject(new Error(actual + ' does not match ' + expected));
+          }
         }, function (actual) {
-          return (expected === actual) ? resolve(actual) : reject(new Error(actual + ' does not match ' + expected));
+          reject(new Error(actual + ' does not match ' + expected));
         });
       });
     };
-    PizzaShop.cook = function (pizza) {
-      PizzaShop.promise(pizza, Promise.resolve('hot ' + pizza));
+    PizzaShop.cook = function (requestedPizza, name) {
+      var address = name || requestedPizza;
+      PizzaShop.promise(address, Promise.resolve('hot ' + requestedPizza));
     };
-    PizzaShop.undercook = function (pizza) {
-      PizzaShop.promise(pizza, Promise.reject('cold ' + pizza));
+    PizzaShop.undercook = function (requestedPizza, name) {
+      var address = name || requestedPizza;
+      PizzaShop.promise(address, Promise.reject('cold ' + requestedPizza));
     };
   });
   afterEach(function() {
@@ -32,14 +39,11 @@ describe('Promise Collector', function() {
       PizzaShop.cook('pepperoni');
       PizzaShop.cook('hawaiian');
       PizzaShop.cook('supreme');
-    }).should.eventually.eql({
-      resolved: {
-        pepperoni: 'hot pepperoni',
-        hawaiian: 'hot hawaiian',
-        supreme: 'hot supreme'
-      },
-      rejected: {}
-    });
+    }).should.eventually.have.property('resolved').that.eql([
+      {key: 'pepperoni', value: 'hot pepperoni'},
+      {key: 'hawaiian', value: 'hot hawaiian'},
+      {key: 'supreme', value: 'hot supreme'}
+    ]);
   });
 
   it('Delivers', function () {
@@ -59,8 +63,10 @@ describe('Promise Collector', function() {
       orders,
       deliveries
     ]).then(function(results) {
-      results[0].should.have.length(3);
-      Object.keys(results[1]).should.have.length(3);
+      var orderResults = results[0];
+      var deliverResults = results[1];
+      orderResults.should.have.length(3);
+      Object.keys(deliverResults.resolved).should.have.length(3);
     });
   });
 
@@ -97,6 +103,19 @@ describe('Promise Collector', function() {
       results.resolved[0].should.eql('hot pepperoni');
       results.rejected[1].should.be.an.instanceof(Error);
       results.rejected[2].should.be.an.instanceof(Error);
+    });
+  });
+
+  it('Allow multiple receipts to the same address.', function () {
+    var orders = Promise.all([
+      PizzaShop.order('pepperoni', '1 Pizza Lane', true),
+      PizzaShop.order('sausage', '1 Pizza Lane', true)
+    ])
+    var deliveries = PizzaShop.collect(function() {
+      PizzaShop.cook('sausage', '1 Pizza Lane');
+      PizzaShop.cook('pepperoni', '1 Pizza Lane');
+    }).then(function (pizzas) {
+      return PizzaShop.deliver(pizzas);
     });
   });
 
